@@ -38,26 +38,29 @@ function App() {
     fetchDatos();
   }, []);
 
-  const registrarVenta = async (cliente, producto, fechaManual = null) => {
-    if (!cliente) return alert("❌ ¡Identifícate!");
-    if (producto.stock <= 0) return alert("❌ Sin stock");
+  const registrarVenta = async (cliente, producto, cantidad = 1, fechaManual = null) => {
+    if (!cliente) return alert("❌ Selecciona tu nombre");
+    if (producto.stock < cantidad) return alert("❌ No hay suficiente stock");
+
+    const totalVenta = producto.precio * cantidad;
+    const nombreProducto = cantidad > 1 ? `${producto.nombre} (x${cantidad})` : producto.nombre;
 
     const fechaFinal = fechaManual 
       ? new Date(fechaManual).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })
       : new Date().toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true });
 
-    // Guardar venta en Supabase
+    // 1. Insertar venta
     const { error: errorVenta } = await supabase.from('ventas').insert([
-      { cliente, producto: producto.nombre, precio: producto.precio, fecha: fechaFinal, pagado: false }
+      { cliente, producto: nombreProducto, precio: totalVenta, fecha: fechaFinal, pagado: false }
     ]);
 
-    // Actualizar stock en Supabase
+    // 2. Descontar stock (restando la cantidad seleccionada)
     const { error: errorStock } = await supabase.from('productos')
-      .update({ stock: producto.stock - 1 })
+      .update({ stock: producto.stock - cantidad })
       .eq('id', producto.id);
 
     if (!errorVenta && !errorStock) {
-      alert(`✅ ¡Registrado para ${cliente}!`);
+      alert(`✅ Registrado: ${nombreProducto} para ${cliente}`);
       fetchDatos();
     }
   };
