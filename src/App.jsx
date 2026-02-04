@@ -103,20 +103,19 @@ function App() {
 
 function VistaCatalogo({ productos, clientes, registrarVenta, ventas }) {
   const [user, setUser] = useState("");
-  // Estado para manejar la cantidad de cada producto por ID
-  const [cantidades, setCantidades] = useState({});
-
-  const cambiarCantidad = (id, delta, stockMax) => {
-    const actual = cantidades[id] || 1;
-    const nueva = Math.max(1, Math.min(stockMax, actual + delta));
-    setCantidades({ ...cantidades, [id]: nueva });
-  };
+  const deudaPersonal = ventas.filter(v => v.cliente === user && !v.pagado).reduce((acc, v) => acc + v.precio, 0);
 
   return (
     <div className="animate-in fade-in duration-500">
-      {/* ... (Selector de usuario igual) ... */}
+      <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 mb-8 mt-4 flex flex-col items-center gap-4 text-center">
+        <select className="w-full max-w-l bg-slate-50 border-2 border-slate-100 p-4 rounded-2xl font-bold text-lg text-center" value={user} onChange={(e) => setUser(e.target.value)}>
+          <option value="">¿Quién eres?</option>
+          {clientes.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+        {user && <div className="bg-indigo-50 text-indigo-600 px-6 py-2 rounded-full font-black text-sm uppercase">💰 Tu deuda: {fM(deudaPersonal)}</div>}
+      </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+<div className="grid grid-cols-2 md:grid-cols-3 gap-6">
         {productos.map(p => {
           const cant = cantidades[p.id] || 1;
           return (
