@@ -3,11 +3,12 @@ import { createClient } from '@supabase/supabase-js'
 
 // --- CONFIGURACIÓN DE CONEXIÓN ---
 // Usa los datos exactos de tu captura de pantalla de Supabase
-const SUPABASE_URL = 'https://jmfpgbptmiaqqtdupywe.supabase.co'
-const SUPABASE_KEY = 'sb_publishable_uGBko4es_nC4Oxcjeb5ltA_Bd3E5S9a' 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
+// Usa import.meta.env para acceder a las variables
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY;
+const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
 
-const ADMIN_PASSWORD = "1000757812"; 
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const fM = (v) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(v);
 
