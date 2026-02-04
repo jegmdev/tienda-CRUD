@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
 
-// --- CONFIGURACIÓN DE CONEXIÓN ---
-// Usa los datos exactos de tu captura de pantalla de Supabase
-// Usa import.meta.env para acceder a las variables
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY;
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
@@ -20,7 +17,6 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [clientes] = useState(["Juan Medina", "Juanita", "Juan Sebastián", "Juan David", "Daya", "Yara", "Isa"]);
 
-  // Función para traer datos de la nube
   const fetchDatos = async () => {
     try {
       const { data: p } = await supabase.from('productos').select('*').order('nombre');
@@ -28,15 +24,13 @@ function App() {
       if (p) setProductos(p);
       if (v) setVentas(v);
     } catch (err) {
-      console.error("Error cargando datos:", err);
+      console.error("Error:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchDatos();
-  }, []);
+  useEffect(() => { fetchDatos(); }, []);
 
   const registrarVenta = async (cliente, producto, cantidad = 1, fechaManual = null) => {
     if (!cliente) return alert("❌ Selecciona tu nombre");
@@ -49,12 +43,10 @@ function App() {
       ? new Date(fechaManual).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })
       : new Date().toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true });
 
-    // 1. Insertar venta
     const { error: errorVenta } = await supabase.from('ventas').insert([
       { cliente, producto: nombreProducto, precio: totalVenta, fecha: fechaFinal, pagado: false }
     ]);
 
-    // 2. Descontar stock (restando la cantidad seleccionada)
     const { error: errorStock } = await supabase.from('productos')
       .update({ stock: producto.stock - cantidad })
       .eq('id', producto.id);
@@ -73,11 +65,7 @@ function App() {
     } else { setIsAuthenticated(false); setView('catalogo'); }
   };
 
-  if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 font-black text-indigo-600 animate-pulse text-xl">
-      🚀 SINCRONIZANDO TIENDA...
-    </div>
-  );
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50 font-black text-indigo-600 animate-pulse text-xl">🚀 SINCRONIZANDO TIENDA...</div>;
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
@@ -89,7 +77,6 @@ function App() {
           </button>
         </div>
       </nav>
-
       <main className="container mx-auto p-4 max-w-5xl">
         {view === 'catalogo' ? (
           <VistaCatalogo productos={productos} clientes={clientes} registrarVenta={registrarVenta} ventas={ventas} />
@@ -115,57 +102,58 @@ function VistaCatalogo({ productos, clientes, registrarVenta, ventas }) {
         {user && <div className="bg-indigo-50 text-indigo-600 px-6 py-2 rounded-full font-black text-sm uppercase">💰 Tu deuda: {fM(deudaPersonal)}</div>}
       </div>
 
-<div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-        {productos.map(p => {
-          const cant = cantidades[p.id] || 1;
-          return (
-            <div key={p.id} className="bg-white p-2 rounded-[2rem] shadow-sm border border-slate-50">
-              <div className="bg-slate-50 rounded-[1.8rem] aspect-square flex items-center justify-center overflow-hidden">
-                {p.imagen ? <img src={p.imagen} className="w-full h-full object-cover" /> : <span className="text-5xl">{p.emoji || "🍭"}</span>}
-              </div>
-              
-              <div className="p-4 text-center">
-                <h3 className="font-black text-slate-700 text-xs uppercase truncate">{p.nombre}</h3>
-                <p className="text-indigo-600 font-black text-2xl my-2">{fM(p.precio)}</p>
-                
-                {/* SELECTOR DE CANTIDAD */}
-                <div className="flex items-center justify-center gap-4 mb-4 bg-slate-50 rounded-xl p-1">
-                  <button 
-                    onClick={() => cambiarCantidad(p.id, -1, p.stock)}
-                    className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm font-bold text-indigo-600 hover:bg-indigo-50"
-                  >-</button>
-                  <span className="font-black text-sm w-4">{cant}</span>
-                  <button 
-                    onClick={() => cambiarCantidad(p.id, 1, p.stock)}
-                    className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm font-bold text-indigo-600 hover:bg-indigo-50"
-                  >+</button>
-                </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+        {productos.map(p => <CardProducto key={p.id} producto={p} user={user} registrarVenta={registrarVenta} />)}
+      </div>
+    </div>
+  )
+}
 
-                <button 
-                  onClick={() => {
-                    registrarVenta(user, p, cant);
-                    setCantidades({ ...cantidades, [p.id]: 1 }); // Resetear a 1 tras comprar
-                  }} 
-                  disabled={p.stock <= 0} 
-                  className={`w-full py-4 rounded-2xl text-white font-black text-xs ${p.stock > 0 ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-slate-200'}`}
-                >
-                  {p.stock > 0 ? `FIAR ${fM(p.precio * cant)}` : 'AGOTADO'}
-                </button>
-                <p className="text-[10px] font-bold text-slate-300 uppercase mt-4">Disponible: {p.stock}</p>
-              </div>
-            </div>
-          );
-        })}
+// Subcomponente para manejar la cantidad individual por producto
+function CardProducto({ producto: p, user, registrarVenta }) {
+  const [cant, setCant] = useState(1);
+
+  const handleComprar = () => {
+    registrarVenta(user, p, cant);
+    setCant(1); // Reset cantidad
+  };
+
+  return (
+    <div className="bg-white p-2 rounded-[2rem] shadow-sm hover:shadow-xl transition-all border border-slate-50">
+      <div className="bg-slate-50 rounded-[1.8rem] aspect-square flex items-center justify-center overflow-hidden">
+        {p.imagen ? <img src={p.imagen} className="w-full h-full object-cover" /> : <span className="text-5xl">{p.emoji || "🍭"}</span>}
+      </div>
+      <div className="p-4 text-center">
+        <h3 className="font-black text-slate-700 text-xs uppercase truncate">{p.nombre}</h3>
+        <p className="text-indigo-600 font-black text-2xl my-2">{fM(p.precio)}</p>
+        
+        {/* Selector de cantidad */}
+        <div className="flex items-center justify-center gap-4 mb-4 bg-slate-50 rounded-xl p-1">
+          <button onClick={() => setCant(Math.max(1, cant - 1))} className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm font-bold text-indigo-600">-</button>
+          <span className="font-black text-slate-700 w-4">{cant}</span>
+          <button onClick={() => setCant(Math.min(p.stock, cant + 1))} className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm font-bold text-indigo-600">+</button>
+        </div>
+
+        <button 
+          onClick={handleComprar} 
+          disabled={p.stock <= 0 || cant > p.stock} 
+          className={`w-full py-4 rounded-2xl text-white font-black text-xs transition-all ${p.stock > 0 && cant <= p.stock ? 'bg-emerald-500 hover:bg-emerald-600 active:scale-95' : 'bg-slate-200 opacity-50 cursor-not-allowed'}`}
+        >
+          {p.stock <= 0 ? 'SOLD OUT' : `COMPRAR ${cant > 1 ? `x${cant}` : ''}`}
+        </button>
+        <p className="text-[10px] font-bold text-slate-300 uppercase mt-4 italic">Stock disponible: {p.stock}</p>
       </div>
     </div>
   );
 }
 
+// Vista Admin (Sin cambios significativos, solo mantenimiento)
 function VistaAdmin({ ventas, productos, clientes, registrarVenta, refresh }) {
   const [form, setForm] = useState({ id: null, nombre: '', precio: '', stock: '', emoji: '', imagen: '' });
   const [filtroNombre, setFiltroNombre] = useState("");
   const [manualUser, setManualUser] = useState("");
   const [manualProdId, setManualProdId] = useState("");
+  const [manualCant, setManualCant] = useState(1);
   const [manualFecha, setManualFecha] = useState(new Date().toISOString().slice(0, 16));
 
   const ventasP = ventas.filter(v => !v.pagado);
@@ -174,24 +162,14 @@ function VistaAdmin({ ventas, productos, clientes, registrarVenta, refresh }) {
   const guardarProducto = async (e) => {
     e.preventDefault();
     const data = { ...form, precio: Number(form.precio), stock: Number(form.stock) };
-    if (form.id) {
-      await supabase.from('productos').update(data).eq('id', form.id);
-    } else {
-      delete data.id;
-      await supabase.from('productos').insert([data]);
-    }
+    if (form.id) { await supabase.from('productos').update(data).eq('id', form.id); } 
+    else { delete data.id; await supabase.from('productos').insert([data]); }
     setForm({ id: null, nombre: '', precio: '', stock: '', emoji: '', imagen: '' });
-    refresh();
-  };
-
-  const pagarTodo = async () => {
-    await supabase.from('ventas').update({ pagado: true }).eq('cliente', filtroNombre).eq('pagado', false);
     refresh();
   };
 
   return (
     <div className="space-y-8 pb-20">
-      {/* DEUDAS */}
       <div className="bg-white p-8 rounded-[2.5rem] shadow-sm">
         <div className="flex justify-between items-center mb-8 gap-4">
           <h2 className="text-2xl font-black italic">DEUDAS</h2>
@@ -202,7 +180,7 @@ function VistaAdmin({ ventas, productos, clientes, registrarVenta, refresh }) {
             <p className="text-[10px] font-black opacity-50 uppercase tracking-widest text-indigo-300">Pendiente:</p>
             <p className="text-4xl font-black">{fM(filtroNombre ? totalF : ventasP.reduce((a,b)=>a+b.precio,0))}</p>
           </div>
-          {filtroNombre && totalF > 0 && <button onClick={pagarTodo} className="bg-emerald-500 p-4 rounded-2xl font-black text-xs hover:bg-emerald-400 transition">PAGAR TODO ✅</button>}
+          {filtroNombre && totalF > 0 && <button onClick={async () => { await supabase.from('ventas').update({ pagado: true }).eq('cliente', filtroNombre).eq('pagado', false); refresh(); }} className="bg-emerald-500 p-4 rounded-2xl font-black text-xs hover:bg-emerald-400 transition">PAGAR TODO ✅</button>}
         </div>
         <div className="max-h-60 overflow-y-auto pr-2">
           <table className="w-full text-left text-xs">
@@ -220,24 +198,17 @@ function VistaAdmin({ ventas, productos, clientes, registrarVenta, refresh }) {
         </div>
       </div>
 
-      {/* VENTA MANUAL */}
       <div className="bg-indigo-50 p-8 rounded-[2.5rem] border-2 border-indigo-100">
         <h2 className="text-xl font-black mb-4 uppercase text-indigo-600">🛒 Venta Manual</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <select className="p-4 rounded-2xl bg-white font-bold" value={manualUser} onChange={e => setManualUser(e.target.value)}>
-            <option value="">¿Quién?</option>
-            {clientes.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <select className="p-4 rounded-2xl bg-white font-bold" value={manualProdId} onChange={e => setManualProdId(e.target.value)}>
-            <option value="">¿Snack?</option>
-            {productos.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-          </select>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <select className="p-4 rounded-2xl bg-white font-bold" value={manualUser} onChange={e => setManualUser(e.target.value)}><option value="">¿Quién?</option>{clientes.map(c => <option key={c} value={c}>{c}</option>)}</select>
+          <select className="p-4 rounded-2xl bg-white font-bold" value={manualProdId} onChange={e => setManualProdId(e.target.value)}><option value="">¿Snack?</option>{productos.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}</select>
+          <input type="number" placeholder="Cant." className="p-4 rounded-2xl bg-white font-bold" value={manualCant} onChange={e => setManualCant(Number(e.target.value))} />
           <input type="datetime-local" className="p-4 rounded-2xl bg-white font-bold text-sm" value={manualFecha} onChange={e => setManualFecha(e.target.value)} />
-          <button onClick={() => registrarVenta(manualUser, productos.find(p => p.id === Number(manualProdId)), manualFecha)} className="bg-indigo-600 text-white font-black rounded-2xl hover:bg-indigo-700 transition">REGISTRAR</button>
+          <button onClick={() => registrarVenta(manualUser, productos.find(p => p.id === Number(manualProdId)), manualCant, manualFecha)} className="bg-indigo-600 text-white font-black rounded-2xl hover:bg-indigo-700 transition">REGISTRAR</button>
         </div>
       </div>
 
-      {/* INVENTARIO */}
       <div className="bg-white p-8 rounded-[2.5rem] shadow-sm">
         <h2 className="text-xl font-black mb-6 uppercase text-indigo-600">{form.id ? '⚡ Editando' : '➕ Nuevo Snack'}</h2>
         <form onSubmit={guardarProducto} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
