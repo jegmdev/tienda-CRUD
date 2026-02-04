@@ -17,7 +17,7 @@ function App() {
   const [ventas, setVentas] = useState([]);
   const [productos, setProductos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [clientes] = useState(["Juan", "Juanita", "Juan Sebastián", "Juan David", "Daya", "Yara", "Isa"]);
+  const [clientes] = useState(["Juan Medina", "Juanita", "Juan Sebastián", "Juan David", "Daya", "Yara", "Isa"]);
 
   // Función para traer datos de la nube
   const fetchDatos = async () => {
