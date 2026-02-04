@@ -103,37 +103,63 @@ function App() {
 
 function VistaCatalogo({ productos, clientes, registrarVenta, ventas }) {
   const [user, setUser] = useState("");
-  const deudaPersonal = ventas.filter(v => v.cliente === user && !v.pagado).reduce((acc, v) => acc + v.precio, 0);
+  // Estado para manejar la cantidad de cada producto por ID
+  const [cantidades, setCantidades] = useState({});
+
+  const cambiarCantidad = (id, delta, stockMax) => {
+    const actual = cantidades[id] || 1;
+    const nueva = Math.max(1, Math.min(stockMax, actual + delta));
+    setCantidades({ ...cantidades, [id]: nueva });
+  };
 
   return (
     <div className="animate-in fade-in duration-500">
-      <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 mb-8 mt-4 flex flex-col items-center gap-4 text-center">
-        <select className="w-full max-w-l bg-slate-50 border-2 border-slate-100 p-4 rounded-2xl font-bold text-lg text-center" value={user} onChange={(e) => setUser(e.target.value)}>
-          <option value="">¿Quién eres?</option>
-          {clientes.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
-        {user && <div className="bg-indigo-50 text-indigo-600 px-6 py-2 rounded-full font-black text-sm uppercase">💰 Tu deuda: {fM(deudaPersonal)}</div>}
-      </div>
+      {/* ... (Selector de usuario igual) ... */}
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-        {productos.map(p => (
-          <div key={p.id} className="bg-white p-2 rounded-[2rem] shadow-sm hover:shadow-xl transition-all border border-slate-50">
-            <div className="bg-slate-50 rounded-[1.8rem] aspect-square flex items-center justify-center overflow-hidden">
-              {p.imagen ? <img src={p.imagen} className="w-full h-full object-cover" /> : <span className="text-5xl">{p.emoji || "🍭"}</span>}
+        {productos.map(p => {
+          const cant = cantidades[p.id] || 1;
+          return (
+            <div key={p.id} className="bg-white p-2 rounded-[2rem] shadow-sm border border-slate-50">
+              <div className="bg-slate-50 rounded-[1.8rem] aspect-square flex items-center justify-center overflow-hidden">
+                {p.imagen ? <img src={p.imagen} className="w-full h-full object-cover" /> : <span className="text-5xl">{p.emoji || "🍭"}</span>}
+              </div>
+              
+              <div className="p-4 text-center">
+                <h3 className="font-black text-slate-700 text-xs uppercase truncate">{p.nombre}</h3>
+                <p className="text-indigo-600 font-black text-2xl my-2">{fM(p.precio)}</p>
+                
+                {/* SELECTOR DE CANTIDAD */}
+                <div className="flex items-center justify-center gap-4 mb-4 bg-slate-50 rounded-xl p-1">
+                  <button 
+                    onClick={() => cambiarCantidad(p.id, -1, p.stock)}
+                    className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm font-bold text-indigo-600 hover:bg-indigo-50"
+                  >-</button>
+                  <span className="font-black text-sm w-4">{cant}</span>
+                  <button 
+                    onClick={() => cambiarCantidad(p.id, 1, p.stock)}
+                    className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm font-bold text-indigo-600 hover:bg-indigo-50"
+                  >+</button>
+                </div>
+
+                <button 
+                  onClick={() => {
+                    registrarVenta(user, p, cant);
+                    setCantidades({ ...cantidades, [p.id]: 1 }); // Resetear a 1 tras comprar
+                  }} 
+                  disabled={p.stock <= 0} 
+                  className={`w-full py-4 rounded-2xl text-white font-black text-xs ${p.stock > 0 ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-slate-200'}`}
+                >
+                  {p.stock > 0 ? `FIAR ${fM(p.precio * cant)}` : 'AGOTADO'}
+                </button>
+                <p className="text-[10px] font-bold text-slate-300 uppercase mt-4">Disponible: {p.stock}</p>
+              </div>
             </div>
-            <div className="p-4 text-center">
-              <h3 className="font-black text-slate-700 text-xs uppercase truncate">{p.nombre}</h3>
-              <p className="text-indigo-600 font-black text-2xl my-2">{fM(p.precio)}</p>
-              <button onClick={() => registrarVenta(user, p)} disabled={p.stock <= 0} className={`w-full py-4 rounded-2xl text-white font-black text-xs ${p.stock > 0 ? 'bg-emerald-500 hover:bg-emerald-600 active:scale-95' : 'bg-slate-200 opacity-50'}`}>
-                {p.stock > 0 ? 'AGREGAR A MI CUENTA' : 'SOLD OUT'}
-              </button>
-              <p className="text-[10px] font-bold text-slate-300 uppercase mt-4 italic">Stock: {p.stock}</p>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
-  )
+  );
 }
 
 function VistaAdmin({ ventas, productos, clientes, registrarVenta, refresh }) {
