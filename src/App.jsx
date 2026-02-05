@@ -17,7 +17,7 @@ const USUARIOS_DATA = {
   "Daya": "1997",
   "Yara": "2811",
   "Isa": "1206",
-  "Sara": "8888"
+  "Sara": "5169"
 };
 
 const fM = (v) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(v);
