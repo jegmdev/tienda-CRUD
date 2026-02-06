@@ -182,11 +182,30 @@ function VistaAdmin({ ventas, productos, clientes, registrarVenta, refresh }) {
     p.nombre.toLowerCase().includes(busquedaInventario.toLowerCase())
   );
 
-  const guardarProducto = async (e) => {
+const guardarProducto = async (e) => {
     e.preventDefault();
-    const data = { ...form, precio: Number(form.precio), stock: Number(form.stock) };
-    if (form.id) { await supabase.from('productos').update(data).eq('id', form.id); } 
-    else { delete data.id; await supabase.from('productos').insert([data]); }
+    
+    // 1. Creamos un objeto limpio con solo lo que necesitamos
+    const data = { 
+      nombre: form.nombre, 
+      precio: Number(form.precio), 
+      stock: Number(form.stock), 
+      emoji: form.emoji, 
+      imagen: form.imagen 
+    };
+
+    if (form.id) { 
+      // Si hay ID, actualizamos (SIN enviar el id o created_at dentro del body)
+      const { error } = await supabase.from('productos').update(data).eq('id', form.id); 
+      if (error) alert("Error al actualizar: " + error.message);
+    } 
+    else { 
+      // Si no hay ID, insertamos nuevo registro
+      const { error } = await supabase.from('productos').insert([data]); 
+      if (error) alert("Error al crear: " + error.message);
+    }
+
+    // Resetear formulario y refrescar lista
     setForm({ id: null, nombre: '', precio: '', stock: '', emoji: '', imagen: '' });
     refresh();
   };
